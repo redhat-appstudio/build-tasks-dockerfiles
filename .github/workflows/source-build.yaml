@@ -53,6 +53,10 @@ jobs:
         containerfiles: |
           ./source-container-build/Dockerfile
 
+    - name: test
+      script:
+        echo ${{ steps.build-image.outputs.tags }}
+
     - name: Push to Quay
       if: github.event_name == 'push'  # don't push image from PR
       uses: redhat-actions/push-to-registry@v2
