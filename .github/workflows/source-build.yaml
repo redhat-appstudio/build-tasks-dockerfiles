@@ -47,7 +47,6 @@ jobs:
       with:
         image: ${{ env.IMAGE_NAME }}
         tags: |
-          latest
           ${{ github.sha }}
         context: ./source-container-build
         containerfiles: |
