@@ -204,21 +204,13 @@ def extract_blob_member(
     tar_archive: str, member: str, dest_dir: str, rename_to: str, work_dir: str, log: logging.Logger
 ) -> None:
     """Extract a blob member and rename it."""
-    # strip 3 components: ./blobs/sha256
-    tar_cmd = [
-        "tar",
-        "--extract",
-        "-C",
-        dest_dir,
-        "--strip-components",
-        "3",
-        "-f",
-        tar_archive,
-        member,
-    ]
-    log.debug("extract blob member %r", tar_cmd)
-    run(tar_cmd, check=True, cwd=work_dir)
-    shutil.move(f"{dest_dir}/{os.path.basename(member)}", f"{dest_dir}/{rename_to}")
+    log.debug("extract from %s/%s: %s -> %s/%s", work_dir, tar_archive, member, dest_dir, rename_to)
+    with tarfile.open(os.path.join(work_dir, tar_archive)) as tar:
+        content = tar.extractfile(member)
+        if not content:
+            raise ValueError(f"Could not etract {member} from {work_dir}/{tar_archive}")
+        with open(os.path.join(dest_dir, rename_to), "wb") as f:
+            shutil.copyfileobj(content, f)
 
 
 def prepare_base_image_sources(

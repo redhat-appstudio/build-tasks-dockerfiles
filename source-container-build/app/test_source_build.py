@@ -1,4 +1,5 @@
 import argparse
+import io
 import logging
 import os
 import os.path
@@ -189,7 +190,7 @@ class TestExtractBlobMember(unittest.TestCase):
 
     def test_raise_error_if_extract_with_unknown_member(self):
         member = "hash_file"
-        with self.assertRaises(CalledProcessError):
+        with self.assertRaises(KeyError):
             source_build.extract_blob_member(
                 self.tar_archive,
                 member,
@@ -199,9 +200,9 @@ class TestExtractBlobMember(unittest.TestCase):
                 self.logger,
             )
 
-    def test_subprocess_should_raise_error(self):
+    def test_raise_error_if_tar_archive_does_not_exist(self):
         tar_archive = "/not/exist"  # make the call fail
-        with self.assertRaises(CalledProcessError):
+        with self.assertRaises(FileNotFoundError):
             source_build.extract_blob_member(
                 tar_archive,
                 "/member",
@@ -1090,12 +1091,14 @@ class TestBuildProcess(unittest.TestCase):
                     mock_tar.__iter__ = Mock(
                         return_value=iter([srpm_blob_member, srpm_symlink_member])
                     )
+                    mock_tar.extractfile.return_value = io.BytesIO(b"some content")
 
                     # Mock tarfile context manager
                     tarfile_open_layer = MagicMock()
                     tarfile_open_layer.__enter__.return_value = mock_tar
 
-                    mock_tarfile_open.side_effect = [tarfile_open_layer]
+                    # we open the tarfile twice - once to read its members, once to extract them
+                    mock_tarfile_open.side_effect = [tarfile_open_layer, tarfile_open_layer]
 
                 return
 
@@ -1180,9 +1183,8 @@ class TestBuildProcess(unittest.TestCase):
         """Include prefetched pip dependencies"""
         self._test_include_sources(include_prefetched_sources=True)
 
-    @patch("source_build.extract_blob_member")
     @patch("tarfile.open")
-    def test_include_parent_image_sources(self, tarfile_open, extract_blob_member):
+    def test_include_parent_image_sources(self, tarfile_open):
         """
         Include sources from parent image. Like another test for gathering sources from parent
         image, go through the layers, but do not do real extraction from a tarball.
@@ -1193,18 +1195,16 @@ class TestBuildProcess(unittest.TestCase):
             expect_parent_image_sources_included=True,
         )
 
-    @patch("source_build.extract_blob_member")
     @patch("tarfile.open")
-    def test_include_parent_image_sources_2(self, tarfile_open, extract_blob_member):
+    def test_include_parent_image_sources_2(self, tarfile_open):
         self._test_include_sources(
             mock_tarfile_open=tarfile_open,
             parent_images="\ngolang:2\n\nregistry.access.example.com/ubi9/ubi:9.3-1@sha256:123\n",
             expect_parent_image_sources_included=True,
         )
 
-    @patch("source_build.extract_blob_member")
     @patch("tarfile.open")
-    def test_include_all_kinds_of_sources(self, tarfile_open, extract_blob_member):
+    def test_include_all_kinds_of_sources(self, tarfile_open):
         self._test_include_sources(
             include_prefetched_sources=True,
             mock_tarfile_open=tarfile_open,
@@ -1212,11 +1212,8 @@ class TestBuildProcess(unittest.TestCase):
             expect_parent_image_sources_included=True,
         )
 
-    @patch("source_build.extract_blob_member")
     @patch("tarfile.open")
-    def test_not_include_parent_image_sources_from_disallowed_registry(
-        self, tarfile_open, extract_blob_member
-    ):
+    def test_not_include_parent_image_sources_from_disallowed_registry(self, tarfile_open):
         self._test_include_sources(
             mock_tarfile_open=tarfile_open,
             parent_images=f"\ngolang:2\n\n{DISALLOWED_REGISTRY}/ubi9/ubi:9.3-1@sha256:123\n",
