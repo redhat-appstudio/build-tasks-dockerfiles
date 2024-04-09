@@ -244,10 +244,6 @@ def prepare_base_image_sources(
     )
     run(cmd, check=True)
 
-    # bsi reads source RPMs from this directory
-    bsi_rpms_dir = create_dir(base_image_sources_dir, "bsi_rpms_dir")
-    sib_dirs.rpm_dir = str(bsi_rpms_dir)  # save this directory for executing bsi
-
     # bsi reads extra sources from this directory
     # each source is in its own directory, for instance, subdir/source_a.tar.gz
     extra_src_dir = create_dir(base_sources_extraction_dir, "extra_src_dir")
@@ -449,7 +445,7 @@ def build_and_push(
 
     bsi_src_drivers = []
     bsi_cmd = [bsi_script, "-b", str(bsi_build_base_dir), "-o", str(image_output_dir)]
-    if sib_dirs.rpm_dir:
+    if sib_dirs.rpm_dir and os.listdir(sib_dirs.rpm_dir):
         bsi_src_drivers.append(BSI_DRV_RPM_DIR)
         bsi_cmd.append("-s")
         bsi_cmd.append(str(sib_dirs.rpm_dir))
@@ -561,7 +557,7 @@ def build(args) -> BuildResult:
     work_dir = create_dir(workspace_dir, "source-build")
     logger.debug("working directory %s", work_dir)
 
-    sib_dirs = SourceImageBuildDirectories()
+    sib_dirs = SourceImageBuildDirectories(rpm_dir=create_dir(work_dir, "bsi_rpms_dir"))
 
     make_source_archive(work_dir, args.source_dir, sib_dirs)
 

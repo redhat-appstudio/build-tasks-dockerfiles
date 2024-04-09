@@ -140,6 +140,12 @@ def create_fake_dep_packages_with_content(cachi2_output_dir: str, deps: dict[str
                 f.write(content)
 
 
+def write_dummy_srpm(rpms_dir: str) -> None:
+    """Write a dummy SRPM to the rpms_dir to make sure it's not empty."""
+    with open(os.path.join(rpms_dir, "dummy.src.rpm"), "wb") as f:
+        f.write(b"\xed\xab\xee\xdb")
+
+
 class TestExtractBlobMember(unittest.TestCase):
     """Test extract_blob_member method"""
 
@@ -338,6 +344,7 @@ class TestBuildAndPush(unittest.TestCase):
         build_result: BuildResult = {}
         # Compose SRPMs and extra sources
         self.sib_dirs.rpm_dir = mkdtemp()
+        write_dummy_srpm(self.sib_dirs.rpm_dir)
         extra_src_dir0 = mkdtemp()
         self.sib_dirs.extra_src_dirs.append(extra_src_dir0)
 
@@ -360,6 +367,7 @@ class TestBuildAndPush(unittest.TestCase):
     def test_build_with_srpms_only(self, run):
         build_result: BuildResult = {}
         self.sib_dirs.rpm_dir = mkdtemp()
+        write_dummy_srpm(self.sib_dirs.rpm_dir)
         # extra_src_dirs is empty, which indicates that no extra source will be composed.
 
         source_build.build_and_push(
@@ -998,6 +1006,7 @@ class TestBuildProcess(unittest.TestCase):
         mock_tarfile_open: MagicMock = None,
         parent_images: str = "",
         expect_parent_image_sources_included: bool = False,
+        expect_prefetched_rpms_included: bool = False,
     ):
         """Test include various sources and app source will always be included"""
 
@@ -1119,7 +1128,7 @@ class TestBuildProcess(unittest.TestCase):
                     else:
                         self.fail(f"Expected pip dependency {self.PIP_PKG} is not included.")
 
-                if expect_parent_image_sources_included:
+                if expect_parent_image_sources_included or expect_prefetched_rpms_included:
                     self.assertIsNotNone(parser.srpms_dir)
                     self.assertTrue(os.path.exists(parser.srpms_dir))
 
@@ -1182,6 +1191,21 @@ class TestBuildProcess(unittest.TestCase):
     def test_include_prefetched_sources(self):
         """Include prefetched pip dependencies"""
         self._test_include_sources(include_prefetched_sources=True)
+
+    def test_include_prefetched_srpms(self):
+        """Include prefetched SRPMs (and no other SRPMs)."""
+        cachi2_output_dir = os.path.join(self.cachi2_dir, "output")
+        srpm_path = "rpm/x86_64/updates-source/vim-9.1.113-1.fc38.src.rpm"
+        create_fake_dep_packages_with_content(
+            cachi2_output_dir,
+            {srpm_path: os.urandom(4)},
+        )
+        try:
+            self._test_include_sources(
+                include_prefetched_sources=True, expect_prefetched_rpms_included=True
+            )
+        finally:
+            os.unlink(os.path.join(cachi2_output_dir, "deps", srpm_path))
 
     @patch("tarfile.open")
     def test_include_parent_image_sources(self, tarfile_open):
