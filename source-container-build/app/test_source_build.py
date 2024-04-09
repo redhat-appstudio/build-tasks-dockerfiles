@@ -905,23 +905,23 @@ class TestBuildProcess(unittest.TestCase):
     def setUpClass(cls):
         cls.app_source_dirs = init_app_source_repo_dir()
 
-        cls.cachi2_dir = mkdtemp("-cachi2")
-        cachi2_output_dir = os.path.join(cls.cachi2_dir, "output")
-        os.mkdir(cachi2_output_dir)
-        create_fake_dep_packages(cachi2_output_dir, [os.path.join("pip", cls.PIP_PKG)])
-
     @classmethod
     def tearDownClass(cls):
-        shutil.rmtree(cls.cachi2_dir)
         shutil.rmtree(cls.app_source_dirs.root_dir)
 
     def setUp(self):
+        self.cachi2_dir = mkdtemp("-cachi2")
+        cachi2_output_dir = os.path.join(self.cachi2_dir, "output")
+        os.mkdir(cachi2_output_dir)
+        create_fake_dep_packages(cachi2_output_dir, [os.path.join("pip", self.PIP_PKG)])
+
         self.work_dir = mkdtemp("-test-build-process-work-dir")
         self.bsi = create_fake_bsi_bin()
         fd, self.result_file = mkstemp("-test-build-process-result-file")
         os.close(fd)
 
     def tearDown(self):
+        shutil.rmtree(self.cachi2_dir)
         shutil.rmtree(self.work_dir)
         os.unlink(self.bsi)
         os.unlink(self.result_file)
@@ -1200,12 +1200,9 @@ class TestBuildProcess(unittest.TestCase):
             cachi2_output_dir,
             {srpm_path: os.urandom(4)},
         )
-        try:
-            self._test_include_sources(
-                include_prefetched_sources=True, expect_prefetched_rpms_included=True
-            )
-        finally:
-            os.unlink(os.path.join(cachi2_output_dir, "deps", srpm_path))
+        self._test_include_sources(
+            include_prefetched_sources=True, expect_prefetched_rpms_included=True
+        )
 
     @patch("tarfile.open")
     def test_include_parent_image_sources(self, tarfile_open):
