@@ -20,7 +20,6 @@ from pathlib import Path
 from subprocess import run
 from tarfile import TarInfo
 from typing import Any, TypedDict, NotRequired, Literal, Final
-from urllib.parse import urlparse
 
 
 """
@@ -1013,7 +1012,8 @@ def build(args) -> BuildResult:
             logger.info("Multiple base images are specified: %r", base_images)
         base_image = base_images[-1]
 
-        allowed = urlparse("docker://" + base_image).netloc in args.registry_allowlist
+        allowed = any(re.match(allow_regex, base_image) for allow_regex in args.registry_allowlist)
+
         if allowed:
             source_image = resolve_source_image_by_version_release(
                 base_image

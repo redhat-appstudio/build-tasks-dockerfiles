@@ -30,6 +30,7 @@ REPO_NAME: Final = "sourcebuildapp"
 REGISTRY_ALLOWLIST: Final = """
 registry.example.io
 registry.access.example.com
+registry.io/user-workloads/
 """
 DISALLOWED_REGISTRY: Final = "registry.someone-hosted.io"
 
@@ -969,6 +970,12 @@ class TestBuildProcess(unittest.TestCase):
             parent_images="registry.access.example.com/ubi9/ubi:9.3-1@sha256:123\n",
             expect_parent_image_sources_included=True,
             source_image_is_resolved_by_version_release=False,
+        )
+
+    def test_not_include_parent_image_sources_due_to_org_is_not_matched(self):
+        self._test_include_sources(
+            parent_images="\ngolang:2\n\nregistry.io/ubi9/ubi:9.3-1@sha256:123\n",
+            expect_parent_image_sources_included=False,
         )
 
     @patch("source_build.run")
