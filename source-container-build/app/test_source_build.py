@@ -115,6 +115,7 @@ def create_skopeo_cli_parser() -> argparse.ArgumentParser:
     copy_parser = subparsers.add_parser("copy")
     copy_parser.add_argument("--digestfile", dest="digest_file")
     copy_parser.add_argument("--retry-times")
+    copy_parser.add_argument("--insecure-policy", action="store_true")
     copy_parser.add_argument("--remove-signatures", action="store_true")
     copy_parser.add_argument("src")
     copy_parser.add_argument("dest")

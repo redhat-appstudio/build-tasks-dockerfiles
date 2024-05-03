@@ -193,19 +193,26 @@ def fetch_image_manifest_digest(image: str) -> str:
 
 
 def skopeo_copy(
-    src: str, dest: str, digest_file: str = "", remove_signatures: bool = False
+    src: str,
+    dest: str,
+    digest_file: str = "",
+    insecure_policy: bool = False,
+    remove_signatures: bool = False,
 ) -> None:
     """Execute skopeo-copy
 
     :param src: str, same as source-image argument.
     :param dest: str, same as destination-image argumnet.
     :param digest_file: bool, map to the ``--digestfile`` argument.
+    :param insecure_policy: bool, map to the ``--insecure-policy`` argument.
     :param remove_signatures: bool, map to the ``--remove-signatures`` argument.
     """
     flags = ["--retry-times", str(MAX_RETRIES)]
     if digest_file:
         flags.append("--digestfile")
         flags.append(digest_file)
+    if insecure_policy:
+        flags.append("--insecure-policy")
     if remove_signatures:
         flags.append("--remove-signatures")
     cmd = ["skopeo", "copy", *flags, src, dest]
@@ -482,7 +489,14 @@ def download_parent_image_sources(source_image: str, work_dir: str) -> str:
     sources_dir = create_dir(work_dir, "parent_image_sources")
     logger.info("Copy source image %s into directory %s", source_image, sources_dir)
     # skopeo can not copy signatures to oci image layout
-    skopeo_copy(f"docker://{source_image}", f"oci:{sources_dir}", remove_signatures=True)
+    # TODO - remove this invocation of `insecure_policy=True` once
+    # https://issues.redhat.com/browse/CLOUDDST-22731 is resolved.
+    skopeo_copy(
+        f"docker://{source_image}",
+        f"oci:{sources_dir}",
+        insecure_policy=True,
+        remove_signatures=True,
+    )
     return sources_dir
 
 
