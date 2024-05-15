@@ -34,3 +34,4 @@ push event (when a pull request is merged).
 4. A new source build task bundle is built and pushed to registry.
 5. Components repositories receive bundle update pull request, which is sent
    during a Build service Renovate controller reconciliation.
+#Dummy check to trigger pipeline
