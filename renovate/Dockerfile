@@ -5,20 +5,16 @@ LABEL name="renovate"
 LABEL org.opencontainers.image.source="https://github.com/renovatebot/renovate" \
   org.opencontainers.image.url="https://renovatebot.com"
 
-RUN microdnf -y install npm docker shadow-utils git python make g++ wget xz && \
-    groupadd -r renovate -g 101 && \
-    useradd -u 101 -r -g root -G renovate -m -d /home/renovate -s /sbin/nologin -c "Renovate user" renovate && \
+RUN microdnf -y module enable nodejs:20 && \
+    microdnf -y install nodejs npm docker shadow-utils git python make g++ wget xz && \
+    groupadd -r renovate -g 1001 && \
+    useradd -u 1001 -r -g root -G renovate -m -d /home/renovate -s /sbin/nologin -c "Renovate user" renovate && \
     chmod 0770 /home/renovate
 
-RUN wget https://nodejs.org/dist/v20.10.0/node-v20.10.0-linux-x64.tar.xz && \
-    echo '3fe4ec5d70c8b4ffc1461dec83ab23fc70124e137c4cbbe1ccc9d6ae6ec04a7d  node-v20.10.0-linux-x64.tar.xz' | sha256sum -c - && \
-    mkdir -p /opt/node && \
-    tar -C /opt -xvf node-v20.10.0-linux-x64.tar.xz
-
-ENV PATH="/opt/node-v20.10.0-linux-x64/bin:$PATH:/home/renovate/node_modules/.bin"
+ENV PATH="$PATH:/home/renovate/node_modules/.bin"
 WORKDIR /home/renovate
-USER 101
-RUN npm install renovate@$RENOVATE_VERSION re2
+USER 1001
+RUN ulimit unlimited && npm install renovate@$RENOVATE_VERSION re2
 
 ENV RENOVATE_X_IGNORE_NODE_WARN=true
 
