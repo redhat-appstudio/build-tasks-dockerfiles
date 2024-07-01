@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/ubi:9.4-1123
+FROM registry.access.redhat.com/ubi9/ubi:9.4-1123.1719560047
 
 ARG BSI_VERSION=0.2.0
 ARG bsi_source=https://github.com/containers/BuildSourceImage/archive/refs/tags/v${BSI_VERSION}.tar.gz
