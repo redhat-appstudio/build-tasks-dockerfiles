@@ -5,17 +5,15 @@ on:
     branches:
     - main
     paths:
+    - .github/workflows/source-build.yaml
     - source-container-build/**
 
   pull_request:
     branches:
     - main
     paths:
+    - .github/workflows/source-build.yaml
     - source-container-build/**
-
-env:
-  REGISTRY: quay.io/redhat-appstudio
-  IMAGE_NAME: build-definitions-source-image-build-utils
 
 jobs:
   check:
@@ -36,32 +34,3 @@ jobs:
       uses: hadolint/hadolint-action@v3.1.0
       with:
         dockerfile: ./source-container-build/Dockerfile
-
-  build-image:
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Build Image
-      id: build-image
-      uses: redhat-actions/buildah-build@v2
-      with:
-        image: ${{ env.IMAGE_NAME }}
-        tags: |
-          latest
-          ${{ github.sha }}
-        context: ./source-container-build
-        containerfiles: |
-          ./source-container-build/Dockerfile
-
-    - name: Push to Quay
-      if: github.event_name == 'push'  # don't push image from PR
-      uses: redhat-actions/push-to-registry@v2
-      with:
-        image: ${{ steps.build-image.outputs.image }}
-        tags: ${{ steps.build-image.outputs.tags }}
-        registry: ${{ env.REGISTRY }}
-        username: ${{ secrets.QUAY_USERNAME }}
-        password: ${{ secrets.QUAY_PASSWORD }}
